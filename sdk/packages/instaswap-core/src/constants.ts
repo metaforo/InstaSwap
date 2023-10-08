@@ -1,3 +1,5 @@
+export const MAX_SQRT_RATIO = 6277100250585753475930931601400621808602321654880405518632n;
+export const MIN_SQRT_RATIO = 18446748437148339061n;
 
 /**
  * The default factory enabled fee amounts, denominated in hundredths of bips.
@@ -9,12 +11,14 @@ export enum FeeAmount {
     HIGH = 10000
   }
   
-  /**
-   * The default factory tick spacings by fee amount.
-   */
-  export const TICK_SPACINGS: { [amount in FeeAmount]: number } = {
+/**
+* The default factory tick spacings by fee amount.
+*/
+export const TICK_SPACINGS: { [amount in FeeAmount]: number } = {
     [FeeAmount.LOWEST]: 200,
     [FeeAmount.LOW]: 1000,
     [FeeAmount.MEDIUM]: 5096,
     [FeeAmount.HIGH]: 10000
-  }
+}
+
+

@@ -5,7 +5,7 @@ import WERC20 from "./abi/werc20-abi.json";
 import ERC20 from "./abi/erc20-abi.json";
 import EkuboPosition from "./abi/ekubo-position-abi.json";
 import EkuboCore from "./abi/ekubo-core-abi.json";
-import {FeeAmount, MAX_SQRT_RATIO, MIN_SQRT_RATIO} from './constants';
+import {FeeAmount, MAX_SQRT_RATIO, MIN_SQRT_RATIO, SwapDirection} from './constants';
 import {TickMath} from './tickMath';
 import {Decimal} from 'decimal.js-light';
 
@@ -28,14 +28,23 @@ type LiquidityParams = {
     upperPrice: number;
 }
 
-type SwapParams = {
+
+type AVNUSwapParams = SwapParams & {
     erc1155AmountIn: BigNumberish;
-    minERC20AmountOut: BigNumberish;
     aggregatorAddress: string;
+}
+
+type SimpleSwapParams = SwapParams & {
+    simpleSwapperAddress: string;
+    amountIn: BigNumberish;
+}
+
+
+type SwapParams = {
+    minERC20AmountOut: BigNumberish;
     userAddress: string;
     fee: FeeAmount;
     slippage: number;
-    currentPrice?: number;
 }
 
 
@@ -48,8 +57,8 @@ export class Wrap {
     public static EkuboPosition: Contract;
     public static EkuboCoreContract: Contract;
     public static SortedTokens:Contract[];
-    public static ApproveCall:Call;
-    public static CancelApproveCall:Call;
+    public static ERC1155ApproveCall:Call;
+    public static CancelERC1155ApproveCall:Call;
 
 
     constructor(config:Config) {
@@ -62,23 +71,23 @@ export class Wrap {
         Wrap.EkuboCoreContract = new Contract(EkuboCore, config.ekuboCoreAddress, provider);
         Wrap.SortedTokens      = [Wrap.ERC20Contract, Wrap.WERC20Contract].sort((a, b) => a.address.localeCompare(b.address));
 
-        Wrap.ApproveCall = {
+        Wrap.ERC1155ApproveCall = {
             contractAddress: Wrap.ERC1155Contract.address,
             entrypoint: "setApprovalForAll",
             calldata: CallData.compile({
                 operator: Wrap.WERC20Contract.address,
                 approved: num.toCairoBool(true)
             })
-        }
+        };
 
-        Wrap.CancelApproveCall =  {
+        Wrap.CancelERC1155ApproveCall =  {
             contractAddress: Wrap.ERC1155Contract.address,
             entrypoint: "setApprovalForAll",
             calldata: CallData.compile({
                 operator: Wrap.WERC20Contract.address,
                 approved: num.toCairoBool(false)
             })
-        }
+        };
 
 
         Decimal.set({ precision: 78 });
@@ -116,6 +125,18 @@ export class Wrap {
             })
         }
     }
+
+    private static createWERC20ApproveCall(spender:string,amount:BigNumberish):Call{
+        return {
+            contractAddress: Wrap.WERC20Contract.address,
+            entrypoint: "approve",
+            calldata: CallData.compile({
+                spender: spender,
+                amount: cairo.uint256(amount)
+            })
+        }
+    }
+
 
 
     public mayInitializePool(fee: FeeAmount, initial_tick: { mag: BigNumberish, sign: boolean }): Call[] {
@@ -182,23 +203,32 @@ export class Wrap {
 
 
         return [
-                    Wrap.ApproveCall,
+                    Wrap.ERC1155ApproveCall,
                     Wrap.createDepositCall(Wrap.WERC20Contract.address,params.erc1155Amount),
-                    Wrap.createTransferCall(Wrap.WERC20Contract.address,Wrap.EkuboPosition.address,BigInt(params.erc1155Amount) * (BigInt(10) ** BigInt(18))),
+                    Wrap.createTransferCall(Wrap.WERC20Contract.address,Wrap.EkuboPosition.address,
+                        BigInt(params.erc1155Amount) * (BigInt(10) ** BigInt(18))),
                     Wrap.createTransferCall(Wrap.ERC20Contract.address,Wrap.EkuboPosition.address,BigInt(params.erc20Amount)),
                     mintAndDeposit,
                     Wrap.createClearCall(Wrap.EkuboPosition.address,Wrap.WERC20Contract.address),
                     Wrap.createClearCall(Wrap.EkuboPosition.address,Wrap.ERC20Contract.address),
-                    Wrap.CancelApproveCall
+                    Wrap.CancelERC1155ApproveCall
         ];
     }
 
-    public withdraw(id: number) {
-
+    public withdraw(id: number):Call[]{
+        return [];
     }
 
 
-    public swapFromERC1155ToERC20ByAVNU(params:SwapParams):Call[] {
+    public swapBySimple(direction:SwapDirection,params:SimpleSwapParams){
+        if (direction == SwapDirection.ERC1155_TO_ERC20){
+            return this.swapFromERC1155ToERC20BySimpleSwapper(params);
+        }
+        return this.swapFromERC20ToERC1155BySimpleSwapper(params);
+    }
+
+
+    public swapFromERC1155ToERC20ByAVNU(params:AVNUSwapParams):Call[] {
 
         if (params.slippage < 0 || params.slippage > 1) {
             throw new Error("slippage should be between 0 and 1");
@@ -206,18 +236,6 @@ export class Wrap {
 
 
         const werc20AmountIn = BigInt(params.erc1155AmountIn.toString()) * BigInt(10 ** 18);
-
-        /**
-         * approve WERC20
-         */
-        const approveWERC20: Call = {
-            contractAddress: Wrap.WERC20Contract.address,
-            entrypoint: "approve",
-            calldata: CallData.compile({
-                spender: params.aggregatorAddress,
-                amount: cairo.uint256(werc20AmountIn)
-            })
-        }
 
         /**
          * swap
@@ -252,151 +270,103 @@ export class Wrap {
                 ]
             })
         }
-        return [Wrap.ApproveCall, Wrap.createDepositCall(Wrap.WERC20Contract.address,params.erc1155AmountIn), approveWERC20, multiRouteSwap];
+        return [
+                    Wrap.ERC1155ApproveCall,
+                    Wrap.createDepositCall(Wrap.WERC20Contract.address,params.erc1155AmountIn),
+                    Wrap.createWERC20ApproveCall(params.aggregatorAddress,werc20AmountIn),
+                    multiRouteSwap
+        ];
 
     }
 
-    public swapFromERC1155ToERC20BySimpleSwapper(erc1155AmountIn: BigNumberish, minERC20AmountOut: BigNumberish, simpleSwapperAddress: string, userAddress: string, fee: FeeAmount, slippage: number, currentPrice: number) {
-        // sort tokens
-        // TODO check length
-        const sortedTokens: Contract[] = [Wrap.ERC20Contract, Wrap.WERC20Contract].sort((a, b) => a.address.localeCompare(b.address));
-        if (slippage < 0 || slippage > 1) {
+    public swapFromERC1155ToERC20BySimpleSwapper(params:SimpleSwapParams):Call[] {
+
+        if (params.slippage < 0 || params.slippage > 1) {
             throw new Error("slippage should be between 0 and 1");
         }
-        const werc20AmountIn = BigInt(erc1155AmountIn.toString()) * BigInt(10 ** 18);
-        Decimal.set({ precision: 78 });
-        // let sqrtRatioLimitX128 = (Wrap.ERC20Contract.address < Wrap.WERC20Contract.address) ? new Decimal(currentPrice / 300).sqrt().mul(new Decimal(2).pow(128)).toFixed(0) : new Decimal(currentPrice * 300).sqrt().mul(new Decimal(2).pow(128)).toFixed(0);
-        
-        const approveForAll: Call = {
-            contractAddress: Wrap.ERC1155Contract.address,
-            entrypoint: "setApprovalForAll",
-            calldata: CallData.compile({
-                operator: Wrap.WERC20Contract.address,
-                approved: num.toCairoBool(true)
-            })
-        }
-        // wrap token
-        const depositToWERC20: Call = {
-            contractAddress: Wrap.WERC20Contract.address,
-            entrypoint: "deposit",
-            calldata: CallData.compile({
-                amount: cairo.uint256(erc1155AmountIn)
-            })
-        }
-        // transfer werc20
-        const transferWERC20: Call = {
-            contractAddress: Wrap.WERC20Contract.address,
-            entrypoint: "transfer",
-            calldata: CallData.compile({
-                recipient: simpleSwapperAddress,
-                amount: cairo.uint256(BigInt(erc1155AmountIn) * (BigInt(10 ** 18))) // wrap token has 18 decimals
-            })
-        }
-        let isToken1 = !(Wrap.ERC20Contract.address > Wrap.WERC20Contract.address) ? true : false;
-        let sqrt_ratio_limit = !(Wrap.ERC20Contract.address > Wrap.WERC20Contract.address) ? MAX_SQRT_RATIO : MIN_SQRT_RATIO;
-        let tmp = {
-            pool_key: {
-                token0: sortedTokens[0].address,
-                token1: sortedTokens[1].address,
-                fee: Wrap.getFeeX128(fee),
-                tick_spacing: 200,
-                extension: 0,
-            },
-            swap_params: {
-                amount: {
-                    mag: werc20AmountIn, 
-                    sign: false
-                },
-                is_token1: isToken1,
-                sqrt_ratio_limit: cairo.uint256(sqrt_ratio_limit),
-                skip_ahead: 4294967295,
-            },
-            recipient: userAddress,
-            calculated_amount_threshold: 0,
-        };
+
+        const werc20AmountIn = BigInt(params.amountIn.toString()) * BigInt(10 ** 18);
+
+
+        const sqrt_ratio_limit = !(Wrap.ERC20Contract.address > Wrap.WERC20Contract.address) ? MAX_SQRT_RATIO : MIN_SQRT_RATIO;
+
         // swap
         const simpleSwap: Call = {
-            contractAddress: simpleSwapperAddress,
+            contractAddress: params.simpleSwapperAddress,
             entrypoint: "swap",
-            calldata: CallData.compile(tmp)
-        }
-        const clearToken0: Call = {
-            contractAddress: simpleSwapperAddress,
-            entrypoint: "clear",
             calldata: CallData.compile({
-                token: sortedTokens[0].address
+                pool_key: {
+                    token0: Wrap.SortedTokens[0].address,
+                    token1: Wrap.SortedTokens[1].address,
+                    fee: Wrap.getFeeX128(params.fee),
+                    tick_spacing: 200,
+                    extension: 0,
+                },
+                swap_params: {
+                    amount: {
+                        mag: werc20AmountIn,
+                        sign: false
+                    },
+                    is_token1: !(Wrap.ERC20Contract.address > Wrap.WERC20Contract.address),
+                    sqrt_ratio_limit: cairo.uint256(sqrt_ratio_limit),
+                    skip_ahead: 4294967295,
+                },
+                recipient: params.userAddress,
+                calculated_amount_threshold: 0,
             })
         }
-        const clearToken1: Call = {
-            contractAddress: simpleSwapperAddress,
-            entrypoint: "clear",
-            calldata: CallData.compile({
-                token: sortedTokens[1].address
-            })
-        }
-        return [approveForAll, depositToWERC20, transferWERC20, simpleSwap, clearToken0, clearToken1];
+
+        return [
+                    Wrap.ERC1155ApproveCall,
+                    Wrap.createDepositCall(Wrap.WERC20Contract.address,params.amountIn),
+                    Wrap.createTransferCall(Wrap.WERC20Contract.address,params.simpleSwapperAddress,
+                        BigInt(params.amountIn) * (BigInt(10 ** 18))),
+                    simpleSwap,
+                    Wrap.createClearCall(params.simpleSwapperAddress,Wrap.SortedTokens[0].address),
+                    Wrap.createClearCall(params.simpleSwapperAddress,Wrap.SortedTokens[1].address),
+        ];
     }
 
-    public swapFromERC20ToERC1155BySimpleSwapper(erc20AmountIn: BigNumberish, minERC1155AmountOut: BigNumberish, simpleSwapperAddress: string, userAddress: string, fee: FeeAmount, slippage: number, currentPrice: number) {
-        // sort tokens
-        // TODO check length
-        const sortedTokens: Contract[] = [Wrap.ERC20Contract, Wrap.WERC20Contract].sort((a, b) => a.address.localeCompare(b.address));
-        if (slippage < 0 || slippage > 1) {
+    public swapFromERC20ToERC1155BySimpleSwapper(params:SimpleSwapParams):Call[] {
+        if (params.slippage < 0 || params.slippage > 1) {
             throw new Error("slippage should be between 0 and 1");
         }
-        
-        // transfer werc20
-        const transferERC20: Call = {
-            contractAddress: Wrap.ERC20Contract.address,
-            entrypoint: "transfer",
-            calldata: CallData.compile({
-                recipient: simpleSwapperAddress,
-                amount: cairo.uint256(erc20AmountIn) 
-            })
-        }
-        let isToken1 = (Wrap.ERC20Contract.address > Wrap.WERC20Contract.address) ? true : false;
-        let sqrt_ratio_limit = (Wrap.ERC20Contract.address > Wrap.WERC20Contract.address) ? MAX_SQRT_RATIO : MIN_SQRT_RATIO;
-        let tmp = {
-            pool_key: {
-                token0: sortedTokens[0].address,
-                token1: sortedTokens[1].address,
-                fee: Wrap.getFeeX128(fee),
-                tick_spacing: 200,
-                extension: 0,
-            },
-            swap_params: {
-                amount: {
-                    mag: erc20AmountIn, 
-                    sign: false
-                },
-                is_token1: isToken1,
-                sqrt_ratio_limit: cairo.uint256(sqrt_ratio_limit),
-                skip_ahead: 4294967295,
-            },
-            recipient: userAddress,
-            calculated_amount_threshold: 0,
-        };
+
+        // let isToken1 = (Wrap.ERC20Contract.address > Wrap.WERC20Contract.address);
+        const sqrt_ratio_limit = (Wrap.ERC20Contract.address > Wrap.WERC20Contract.address) ? MAX_SQRT_RATIO : MIN_SQRT_RATIO;
         // swap
         const simpleSwap: Call = {
-            contractAddress: simpleSwapperAddress,
+            contractAddress: params.simpleSwapperAddress,
             entrypoint: "swap",
-            calldata: CallData.compile(tmp)
-        }
-        const clearToken0: Call = {
-            contractAddress: simpleSwapperAddress,
-            entrypoint: "clear",
             calldata: CallData.compile({
-                token: sortedTokens[0].address
+                pool_key: {
+                    token0: Wrap.SortedTokens[0].address,
+                    token1: Wrap.SortedTokens[1].address,
+                    fee: Wrap.getFeeX128(params.fee),
+                    tick_spacing: 200,
+                    extension: 0,
+                },
+                swap_params: {
+                    amount: {
+                        mag: params.amountIn,
+                        sign: false
+                    },
+                    is_token1: Wrap.ERC20Contract.address > Wrap.WERC20Contract.address,
+                    sqrt_ratio_limit: cairo.uint256(sqrt_ratio_limit),
+                    skip_ahead: 4294967295,
+                },
+                recipient: params.userAddress,
+                calculated_amount_threshold: 0,
             })
-        }
-        const clearToken1: Call = {
-            contractAddress: simpleSwapperAddress,
-            entrypoint: "clear",
-            calldata: CallData.compile({
-                token: sortedTokens[1].address
-            })
-        }
-        return [transferERC20, simpleSwap, clearToken0, clearToken1];
+        };
+
+
+        return [
+                    Wrap.createTransferCall(Wrap.ERC20Contract.address,params.simpleSwapperAddress,params.amountIn),
+                    simpleSwap,
+                    Wrap.createClearCall(params.simpleSwapperAddress,Wrap.SortedTokens[0].address),
+                    Wrap.createClearCall(params.simpleSwapperAddress,Wrap.SortedTokens[1].address),
+        ];
     }
 
 

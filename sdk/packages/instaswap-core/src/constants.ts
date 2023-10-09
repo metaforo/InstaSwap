@@ -9,8 +9,8 @@ export enum FeeAmount {
     LOW = 500,
     MEDIUM = 3000,
     HIGH = 10000
-  }
-  
+}
+
 /**
 * The default factory tick spacings by fee amount.
 */
@@ -19,6 +19,16 @@ export const TICK_SPACINGS: { [amount in FeeAmount]: number } = {
     [FeeAmount.LOW]: 1000,
     [FeeAmount.MEDIUM]: 5096,
     [FeeAmount.HIGH]: 10000
+}
+
+export enum SwapType {
+    AVNU = 'AVNU',
+    SIMPLE_SWAPPER = 'SIMPLE_SWAPPER'
+}
+
+export enum SwapDirection {
+    ERC1155_TO_ERC20,
+    ERC20_TO_ERC1155,
 }
 
 

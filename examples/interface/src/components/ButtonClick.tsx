@@ -17,10 +17,14 @@ const ButtonClick = () => {
   const [ethAmount, setAddLiquidityEthAmount] = useState(0);
   const [erc1155AmountForSwap, setERC1155AmountForSwap] = useState(0);
   const [erc20AmountForSwap, setERC20AmountForSwap] = useState(0);
+    const [wGoldForSwap, setWGoldForSwap] = useState(0);
 
-  const erc1155_address = useMemo(() => "0x03467674358c444d5868e40b4de2c8b08f0146cbdb4f77242bd7619efcf3c0a6", [])
-  const werc20_address = useMemo(() => "0x06b09e4c92a08076222b392c77e7eab4af5d127188082713aeecbe9013003bf4", [])
-  const eth_address = useMemo(() => "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7", [])
+
+    const erc1155_address = useMemo(() => "0x03467674358c444d5868e40b4de2c8b08f0146cbdb4f77242bd7619efcf3c0a6", [])
+
+    const werc20_address = useMemo(() => "0x06044d3038dee0011c54e38d3cf53b1ff082cb9af3ffb90a741df3ddb05b152d", [])
+  const eth_address = useMemo(() => "0x0734ca91d8ab5805855536572f85f49e93049edb9914402018cd33d8f46e52bc", [])
+
   const ekubo_position_address = useMemo(() => "0x73fa8432bf59f8ed535f29acfd89a7020758bda7be509e00dfed8a9fde12ddc", [])
   const ekubo_core_address = useMemo(() => "0x031e8a7ab6a6a556548ac85cbb8b5f56e8905696e9f13e9a858142b8ee0cc221", [])
   const avnu_address = useMemo(() => "0x07e36202ace0ab52bf438bd8a8b64b3731c48d09f0d8879f5b006384c2f35032", [])
@@ -140,6 +144,27 @@ const getCurrentPrice = useCallback(async () => {
       console.log(transaction_hash);
   }, [account, erc20AmountForSwap, currentPrice, avnu_address])
 
+
+    const handleSwapFromWGoldToWSliverBySimpleSwap = useCallback(async () => {
+        if (!account) return;
+        // debugger;
+        const params = {
+            amountIn: 0.001 * (10 **18),
+            minERC20AmountOut: 1313331313,
+            simpleSwapperAddress: simple_swapper,
+            userAddress: account.address,
+            fee:  FeeAmount.LOWEST,
+            slippage: 0.99,
+        }
+
+        const { transaction_hash } = await wrap.swapSimple(SwapDirection.ERC20_TO_ERC1155,params);
+        console.log(transaction_hash);
+    }, [account, wGoldForSwap, currentPrice, avnu_address])
+
+
+
+
+
   const mayInitializePool = useCallback(async () => {
     const initialize_tick = {
       mag: 0n,
@@ -241,6 +266,19 @@ const getCurrentPrice = useCallback(async () => {
       <div>
         <button onClick={handleSwapFromERC20ToERC1155BySimpleSwap}>swap</button>
       </div>
+
+
+        <div>
+            <h3> Swap From WGold to WSliver By SimpleSwapper</h3>
+        </div>
+        <div>
+            <label htmlFor="erc20 amount">WGold amount:</label>
+            <input type="number" id="wGold amount" value={wGoldForSwap} onChange={(e) => setWGoldForSwap(parseFloat(e.target.value))} />
+        </div>
+        <div>
+            <button onClick={handleSwapFromWGoldToWSliverBySimpleSwap}>swap</button>
+        </div>
+
 
     </div>
   )

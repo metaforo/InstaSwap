@@ -237,8 +237,16 @@ export class Wrap {
     ]);
   };
 
-  public withdraw(id: number): Call[] {
-    return [];
+  public withdraw = async (amount:BigNumberish): Promise<InvokeFunctionResponse> =>  {
+    return Wrap.account.execute([
+      {
+        contractAddress: Wrap.WERC20Address,
+        entrypoint: "withdraw",
+        calldata: CallData.compile({
+          amount: cairo.uint256(amount),
+        }),
+      }
+    ]);
   }
 
   public quoteSingle = async (

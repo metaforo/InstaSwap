@@ -17,6 +17,7 @@ const ButtonClick = () => {
   const [erc1155AmountForSwap, setERC1155AmountForSwap] = useState(0);
   const [erc20AmountForSwap, setERC20AmountForSwap] = useState(0);
   const [wGoldForSwap, setWGoldForSwap] = useState(0);
+  const [nftForWithdraw, setNftForWithdraw] = useState(0);
 
   const erc1155_address = useMemo(
     () => "0x03467674358c444d5868e40b4de2c8b08f0146cbdb4f77242bd7619efcf3c0a6",
@@ -24,11 +25,11 @@ const ButtonClick = () => {
   );
 
   const werc20_address = useMemo(
-    () => "0x06044d3038dee0011c54e38d3cf53b1ff082cb9af3ffb90a741df3ddb05b152d",
+    () => "0x06b09e4c92a08076222b392c77e7eab4af5d127188082713aeecbe9013003bf4",
     [],
   );
   const eth_address = useMemo(
-    () => "0x0734ca91d8ab5805855536572f85f49e93049edb9914402018cd33d8f46e52bc",
+    () => "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
     [],
   );
 
@@ -118,6 +119,16 @@ const ButtonClick = () => {
     console.log(transaction_hash);
   }, [account, lowerBound, upperBound, ethAmount, erc1155Amount]);
 
+
+
+  const withdraw = useCallback(async () => {
+    const { transaction_hash } = await wrap.withdraw(nftForWithdraw);
+    console.log(transaction_hash);
+
+  }, [account,nftForWithdraw]);
+
+
+
   const handleSwapFromERC1155ToERC20ByAVNU = useCallback(async () => {
     if (!account) return;
 
@@ -204,6 +215,10 @@ const ButtonClick = () => {
     );
     console.log(transaction_hash);
   }, [account, lowerBound, upperBound]);
+
+
+
+
 
   const mintERC1155Token = useCallback(async () => {
     if (!address) return;
@@ -333,19 +348,19 @@ const ButtonClick = () => {
       </div>
 
       <div>
-        <h3> Swap From WGold to WSliver By SimpleSwapper</h3>
+        <h3> Withdraw </h3>
       </div>
       <div>
-        <label htmlFor="erc20 amount">WGold amount:</label>
+        <label htmlFor="erc20 amount">ERC1155 amount:</label>
         <input
           type="number"
-          id="wGold amount"
-          value={wGoldForSwap}
-          onChange={(e) => setWGoldForSwap(parseFloat(e.target.value))}
+          id="nft amount"
+          value={nftForWithdraw}
+          onChange={(e) => setNftForWithdraw(parseFloat(e.target.value))}
         />
       </div>
       <div>
-        <button onClick={handleSwapFromWGoldToWSliverBySimpleSwap}>swap</button>
+        <button onClick={withdraw}>withdraw</button>
       </div>
     </div>
   );

@@ -20,6 +20,7 @@ export type LiquidityParams = {
   upperPrice: number;
 };
 
+
 export type AVNUSwapParams = SwapParams & {
   erc1155AmountIn: BigNumberish;
   aggregatorAddress: string;

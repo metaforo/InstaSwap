@@ -44,16 +44,16 @@ const ButtonClick = () => {
     [],
   );
 
-  const avnu_address = useMemo(
-    () => "0x07e36202ace0ab52bf438bd8a8b64b3731c48d09f0d8879f5b006384c2f35032",
-    [],
-  );
   const simple_swapper = useMemo(
     () => "0x064f7ed2dc5070133ae8ccdf85f01e82507facbe5cdde456e1418e3901dc51a0",
     [],
   );
   const quoter = useMemo(
     () => "0x042aa743335663ed9c7b52b331ab7f81cc8d65280d311506653f9b5cc22be7cb",
+    [],
+  );
+  const nft_address = useMemo(
+    () => "0x1090e3cfd9990c396f246cd1d5c7fb091905cba9f99739653db1f2960a3311f",
     [],
   );
   const provider = new Provider({
@@ -122,27 +122,12 @@ const ButtonClick = () => {
     console.log(transaction_hash);
   }, [account, lowerBound, upperBound, ethAmount, erc1155Amount]);
 
+
   const withdraw = useCallback(async () => {
     const { transaction_hash } = await wrap.withdraw(nftForWithdraw);
     console.log(transaction_hash);
   }, [account, nftForWithdraw]);
 
-  const handleSwapFromERC1155ToERC20ByAVNU = useCallback(async () => {
-    if (!account) return;
-
-    const params = {
-      erc1155AmountIn: erc1155AmountForSwap,
-      minERC20AmountOut: 1313331313,
-      aggregatorAddress: avnu_address,
-      userAddress: account.address,
-      fee: FeeAmount.LOWEST,
-      slippage: 0.99,
-      currentPrice: currentPrice,
-    };
-    const { transaction_hash } =
-      await wrap.swapFromERC1155ToERC20ByAVNU(params);
-    console.log(transaction_hash);
-  }, [account, erc1155AmountForSwap, currentPrice, avnu_address]);
 
   const handleSwapFromERC1155ToERC20BySimpleSwap = useCallback(async () => {
     if (!account) return;
@@ -161,7 +146,7 @@ const ButtonClick = () => {
       params,
     );
     console.log(transaction_hash);
-  }, [account, erc1155AmountForSwap, currentPrice, avnu_address]);
+  }, [account, erc1155AmountForSwap, currentPrice]);
 
   const handleSwapFromERC20ToERC1155BySimpleSwap = useCallback(async () => {
     if (!account) return;
@@ -180,7 +165,7 @@ const ButtonClick = () => {
       params,
     );
     console.log(transaction_hash);
-  }, [account, erc20AmountForSwap, currentPrice, avnu_address]);
+  }, [account, erc20AmountForSwap, currentPrice]);
 
   const withdrawLiquidity = useCallback(async () => {
     if (!account) return;

@@ -30,15 +30,15 @@ const wrap = new Wrap(config);
 ```
 
 ### Initialize pool
+
 ```js
-const initialize_tick = { mag: 0n,sign: false};
+const initialize_tick = { mag: 0n, sign: false };
 
 const { transaction_hash } = await wrap.mayInitializePool(
   FeeAmount.LOWEST,
   initialize_tick,
 );
 ```
-
 
 ### Simple wrap
 

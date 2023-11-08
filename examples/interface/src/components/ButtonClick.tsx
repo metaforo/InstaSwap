@@ -21,7 +21,6 @@ const ButtonClick = () => {
   const [positionId, setPositionId] = useState(0);
   const [liquidity, setLiquidity] = useState(0);
 
-
   const erc1155_address = useMemo(
     () => "0x03467674358c444d5868e40b4de2c8b08f0146cbdb4f77242bd7619efcf3c0a6",
     [],
@@ -123,15 +122,10 @@ const ButtonClick = () => {
     console.log(transaction_hash);
   }, [account, lowerBound, upperBound, ethAmount, erc1155Amount]);
 
-
-
   const withdraw = useCallback(async () => {
     const { transaction_hash } = await wrap.withdraw(nftForWithdraw);
     console.log(transaction_hash);
-
-  }, [account,nftForWithdraw]);
-
-
+  }, [account, nftForWithdraw]);
 
   const handleSwapFromERC1155ToERC20ByAVNU = useCallback(async () => {
     if (!account) return;
@@ -188,17 +182,15 @@ const ButtonClick = () => {
     console.log(transaction_hash);
   }, [account, erc20AmountForSwap, currentPrice, avnu_address]);
 
-
-
   const withdrawLiquidity = useCallback(async () => {
     if (!account) return;
 
-    const { transaction_hash } = await wrap.withdrawLiquidity(positionId,liquidity);
+    const { transaction_hash } = await wrap.withdrawLiquidity(
+      positionId,
+      liquidity,
+    );
     console.log(transaction_hash);
   }, [account, liquidity]);
-
-
-
 
   const mayInitializePool = useCallback(async () => {
     const initialize_tick = {
@@ -212,10 +204,6 @@ const ButtonClick = () => {
     );
     console.log(transaction_hash);
   }, [account, lowerBound, upperBound]);
-
-
-
-
 
   const mintERC1155Token = useCallback(async () => {
     if (!address) return;
@@ -303,35 +291,30 @@ const ButtonClick = () => {
         <button onClick={handleAddLiquidity}>add liquidity</button>
       </div>
 
-
       <div>
         <h3> Withdraw Liquidity </h3>
       </div>
       <div>
         <label htmlFor="erc20 amount">id:</label>
         <input
-            type="number"
-            id="position id"
-            value={positionId}
-            onChange={(e) => setPositionId(parseFloat(e.target.value))}
+          type="number"
+          id="position id"
+          value={positionId}
+          onChange={(e) => setPositionId(parseFloat(e.target.value))}
         />
       </div>
       <div>
         <label htmlFor="erc20 amount">liquidity:</label>
         <input
-            type="number"
-            id="liquidity"
-            value={liquidity}
-            onChange={(e) => setLiquidity(parseFloat(e.target.value))}
+          type="number"
+          id="liquidity"
+          value={liquidity}
+          onChange={(e) => setLiquidity(parseFloat(e.target.value))}
         />
       </div>
       <div>
         <button onClick={withdrawLiquidity}>withdraw</button>
       </div>
-
-
-
-
 
       {/*<div>*/}
       {/*    <h3> Swap From ERC1155 to ERC20 By AVNU </h3>*/}
@@ -390,13 +373,6 @@ const ButtonClick = () => {
       <div>
         <button onClick={withdraw}>withdraw</button>
       </div>
-
-
-
-
-
-
-
     </div>
   );
 };

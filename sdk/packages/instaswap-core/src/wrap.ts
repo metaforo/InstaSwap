@@ -12,10 +12,21 @@ import {
 } from "starknet";
 import ERC1155 from "./abi/erc1155-abi.json";
 import Quoter from "./abi/quoter-abi.json";
-import {AVNU_SQRT_RATIO, FeeAmount, MAX_SQRT_RATIO, MIN_SQRT_RATIO, SwapDirection,} from "./constants";
-import {AVNUSwapParams, Config, LiquidityParams, SimpleSwapParams,} from "./types";
-import {Decimal} from "decimal.js-light";
-import {getTickAtSqrtRatio} from "./tickMath";
+import {
+  AVNU_SQRT_RATIO,
+  FeeAmount,
+  MAX_SQRT_RATIO,
+  MIN_SQRT_RATIO,
+  SwapDirection,
+} from "./constants";
+import {
+  AVNUSwapParams,
+  Config,
+  LiquidityParams,
+  SimpleSwapParams,
+} from "./types";
+import { Decimal } from "decimal.js-light";
+import { getTickAtSqrtRatio } from "./tickMath";
 
 export class Wrap {
   public static ERC1155Address: string;
@@ -226,7 +237,10 @@ export class Wrap {
     ]);
   };
 
-  public withdrawLiquidity = async (id:number, liquidity: BigNumberish): Promise<InvokeFunctionResponse> =>{
+  public withdrawLiquidity = async (
+    id: number,
+    liquidity: BigNumberish,
+  ): Promise<InvokeFunctionResponse> => {
     const withdraw: Call = {
       contractAddress: Wrap.EkuboPositionAddress,
       entrypoint: "withdraw",
@@ -250,24 +264,18 @@ export class Wrap {
           },
         },
         liquidity: liquidity,
-        min_token0:0,
-        min_token1:0,
-        collect_fees:1,
+        min_token0: 0,
+        min_token1: 0,
+        collect_fees: 1,
       }),
     };
 
+    return Wrap.account.execute([withdraw]);
+  };
 
-    return Wrap.account.execute([
-      withdraw
-    ]);
-
-
-  }
-
-
-
-
-  public withdraw = async (amount:BigNumberish): Promise<InvokeFunctionResponse> =>  {
+  public withdraw = async (
+    amount: BigNumberish,
+  ): Promise<InvokeFunctionResponse> => {
     return Wrap.account.execute([
       {
         contractAddress: Wrap.WERC20Address,
@@ -275,9 +283,9 @@ export class Wrap {
         calldata: CallData.compile({
           amount: cairo.uint256(amount),
         }),
-      }
+      },
     ]);
-  }
+  };
 
   public quoteSingle = async (
     fee: FeeAmount,

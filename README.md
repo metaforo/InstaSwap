@@ -47,18 +47,43 @@ const { transaction_hash } = await wrap.mayInitializePool(
 ```js
 
 const params = {
-  amountIn: erc1155AmountForSwap,
-  minERC20AmountOut: 1313331313,
-  simpleSwapperAddress: simple_swapper,
-  userAddress: account.address,
-  fee: FeeAmount.LOWEST,
-  slippage: 0.99,
+  amountIn: [erc1155 amount for swap],
+  minERC20AmountOut: [min amount],
+  simpleSwapperAddress: [simple swapper address],
+  userAddress:[user address],
+  fee: [fee],
+  slippage: [slippage](0-1),
 };
 
-const { transaction_hash } = await wrap.swapSimple(
+wrap.swapSimple(
   SwapDirection.ERC1155_TO_ERC20,
   params,
 );
 
 
+```
+
+- from erc20 to erc1155
+
+```js
+ const params = {
+  amountIn: [erc20 amount for swap],
+  minERC20AmountOut: [min amount],
+  simpleSwapperAddress: [simple swapper address],
+  userAddress:[user address],
+  fee: [fee],
+  slippage: [slippage](0-1),
+};
+
+wrap.swapSimple(
+  SwapDirection.ERC20_TO_ERC1155,
+  params,
+);
+
+```
+
+### Withdraw erc1155
+
+```js
+wrap.withdraw(erc1155Num);
 ```

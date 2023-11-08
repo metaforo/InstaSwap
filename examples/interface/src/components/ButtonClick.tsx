@@ -44,6 +44,7 @@ const ButtonClick = () => {
     () => "0x031e8a7ab6a6a556548ac85cbb8b5f56e8905696e9f13e9a858142b8ee0cc221",
     [],
   );
+
   const avnu_address = useMemo(
     () => "0x07e36202ace0ab52bf438bd8a8b64b3731c48d09f0d8879f5b006384c2f35032",
     [],

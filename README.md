@@ -40,6 +40,32 @@ const { transaction_hash } = await wrap.mayInitializePool(
 );
 ```
 
+### Add liquidity
+
+```js
+const params = {
+      erc1155Amount: [erc1155 amount],
+      erc20Amount: [erc20 amount],
+      fee: [fee],
+      lowerPrice: [lowerBound],
+      upperPrice: [upperBound],
+    };
+
+wrap.addLiquidity(params);
+
+```
+
+
+
+### Withdraw Liquidity
+
+```js
+wrap.withdrawLiquidity(positionId,liquidity);
+```
+
+
+
+
 ### Simple wrap
 
 - from erc115 to erc20
@@ -52,7 +78,7 @@ const params = {
   simpleSwapperAddress: [simple swapper address],
   userAddress:[user address],
   fee: [fee],
-  slippage: [slippage](0-1),
+  slippage: [slippage],
 };
 
 wrap.swapSimple(
@@ -72,7 +98,7 @@ wrap.swapSimple(
   simpleSwapperAddress: [simple swapper address],
   userAddress:[user address],
   fee: [fee],
-  slippage: [slippage](0-1),
+  slippage: [slippage],
 };
 
 wrap.swapSimple(
@@ -87,3 +113,5 @@ wrap.swapSimple(
 ```js
 wrap.withdraw(erc1155Num);
 ```
+
+
